@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cheapeats-db
+    environment:
+      POSTGRES_USER: cheapeats
+      POSTGRES_PASSWORD: cheapeats_pass
+      POSTGRES_DB: cheapeats_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cheapeats-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cheapeats"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cheapeats-api
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: cheapeats
+      DB_PASSWORD: cheapeats_pass
+      DB_NAME: cheapeats_db
+      DB_SSLMODE: disable
+      PORT: 8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cheapeats-network
+    volumes:
+      - ./:/app
+
+volumes:
+  postgres_data:
+
+networks:
+  cheapeats-network:
+    driver: bridge
